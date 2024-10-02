@@ -7,5 +7,10 @@ tags:
 # ES学习笔记
 <!-- more -->
 ## 1. 基础操作
-### 我是coderLiu
-### 我是刘大帅
+
+检索全部
+
+```http
+get: localhost:9200/_cat/indices?v
+```
+
