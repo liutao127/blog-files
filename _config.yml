@@ -3,8 +3,8 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: lt_haha
-subtitle: ½ñÌì²»Ñ§Ï°£¬Ã÷Ìì±ä´ÀÖí
+title: lt_hahaha
+subtitle: ï¿½ï¿½ï¿½ì²»Ñ§Ï°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 description: ''
 keywords:
 author: coderLT
@@ -106,7 +106,7 @@ deploy:
   repo: git@github.com:liutao127/liutao127.github.io.git
   branch: master
   
-# ÅäÖÃÄ¿Â¼
+# ï¿½ï¿½ï¿½ï¿½Ä¿Â¼
 jsonContent:
     meta: false
     pages: false
