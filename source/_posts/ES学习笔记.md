@@ -1305,3 +1305,63 @@ get: localhost:9200/shopping/_search
 }
 ```
 
+### 1.4. 集群
+
+#### 1.4.1. 集群状态查询
+
+**请求：**
+
+```http
+get: localhost:1001/_cluster/health
+```
+
+**返回数据：**
+
+```json
+{
+    "cluster_name": "my-application",
+    "status": "green",
+    "timed_out": false,
+    "number_of_nodes": 3,
+    "number_of_data_nodes": 3,
+    "active_primary_shards": 3,
+    "active_shards": 6,
+    "relocating_shards": 0,
+    "initializing_shards": 0,
+    "unassigned_shards": 0,
+    "delayed_unassigned_shards": 0,
+    "number_of_pending_tasks": 0,
+    "number_of_in_flight_fetch": 0,
+    "task_max_waiting_in_queue_millis": 0,
+    "active_shards_percent_as_number": 100.0
+}
+```
+
+
+
+#### 1.4.2. 集群资源使用情况
+
+**请求：**
+
+```http
+get: localhost:1001/_nodes/stats
+```
+
+**返回数据：**
+
+```json
+{
+    "_nodes": {
+        "total": 3,
+        "successful": 3,
+        "failed": 0
+    },
+    "cluster_name": "my-application",
+    "nodes": {
+        "tNKMEgWBSOO5e1MbjaMFYw": {...info...},
+        "5-BKblyfQl2OiC28Hqdg9g": {...info...},
+        "N5zro8OsTx-yOjImfd1EPw": {...info...}
+    }
+}
+```
+
