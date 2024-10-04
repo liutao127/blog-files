@@ -24,7 +24,40 @@ get: localhost:9200/_cat/indices?v
 health status index    uuid                   pri rep docs.count docs.deleted store.size pri.store.size dataset.size
 yellow open   shopping tOf7_mfST2e4S3BKaRWmDA   1   1          7            0     32.6kb         32.6kb       32.6kb
 
-#### 1.1.2. 创建索引
+#### 1.1.2. 查询索引字段映射关系
+
+**请求：**
+
+```http
+get: localhost:9200/user/_mapping
+```
+
+**返回数据：**
+
+```json
+{
+    "user": {
+        "mappings": {
+            "properties": {
+                "name": {
+                    "type": "text"
+                },
+                "sex": {
+                    "type": "keyword"
+                },
+                "tel": {
+                    "type": "keyword",
+                    "index": false
+                }
+            }
+        }
+    }
+}
+```
+
+#### 1.1.3. 创建索引
+
+##### 不指定映射关系创建索引
 
 **请求：**
 
@@ -32,7 +65,36 @@ yellow open   shopping tOf7_mfST2e4S3BKaRWmDA   1   1          7            0   
 put: localhost:9200/shopping
 ```
 
-#### 1.1.3. 删除索引
+##### 指定映射关系创建索引
+
+**请求：**
+
+```http
+put: localhost:9200/user/_mapping
+```
+
+**请求体参数：**
+
+```json
+{
+    "properties": {
+        "name": {
+            "type": "text", // 可以被分词查询
+            "index": true
+        },
+        "sex": {
+            "type": "keyword", // 不可分词，必须完整匹配
+            "index": true
+        },
+        "tel": {
+            "type": "keyword",
+            "index": false
+        }
+    }
+}
+```
+
+#### 1.1.4. 删除索引
 
 **请求：**
 
@@ -40,7 +102,7 @@ put: localhost:9200/shopping
 delete: localhost:9200/shopping
 ```
 
-#### 1.1.4. 查询单个索引
+#### 1.1.5. 查询单个索引
 
 **请求：**
 
@@ -1122,6 +1184,123 @@ get: localhost:9200/shopping/_search
                 }
             }
         ]
+    }
+}
+```
+
+#### 1.3.11. 聚合查询-分组查询
+
+**请求：**
+
+```http
+get: localhost:9200/shopping/_search
+```
+
+**请求体参数：**
+
+```json
+{
+    "aggs": { // 聚合操作
+        "price_group": { // 名称：随意起名
+            "terms": { // 分组
+                "field": "price" // 分组字段
+            }
+        }
+    },
+    "size": 0 // 如果不加size，那么结果会同时返回命中记录
+}
+```
+
+**返回结果：**
+
+```json
+{
+    "took": 1,
+    "timed_out": false,
+    "_shards": {
+        "total": 1,
+        "successful": 1,
+        "skipped": 0,
+        "failed": 0
+    },
+    "hits": {
+        "total": {
+            "value": 9,
+            "relation": "eq"
+        },
+        "max_score": null,
+        "hits": []
+    },
+    "aggregations": {
+        "price_group": {
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0,
+            "buckets": [
+                {
+                    "key": 7699,
+                    "doc_count": 6
+                },
+                {
+                    "key": 39999,
+                    "doc_count": 2
+                },
+                {
+                    "key": 4999,
+                    "doc_count": 1
+                }
+            ]
+        }
+    }
+}
+```
+
+#### 1.3.12. 聚合查询-求取平均值
+
+**请求：**
+
+```http
+get: localhost:9200/shopping/_search
+```
+
+**请求体参数：**
+
+```json
+{
+    "aggs": { // 聚合操作
+        "price_avg": { // 名称：随意起名
+            "avg": { // 平均值
+                "field": "price" // 分组字段
+            }
+        }
+    },
+    "size": 0 // 如果不加size，那么结果会同时返回命中记录
+}
+```
+
+**返回结果：**
+
+```json
+{
+    "took": 1,
+    "timed_out": false,
+    "_shards": {
+        "total": 1,
+        "successful": 1,
+        "skipped": 0,
+        "failed": 0
+    },
+    "hits": {
+        "total": {
+            "value": 9,
+            "relation": "eq"
+        },
+        "max_score": null,
+        "hits": []
+    },
+    "aggregations": {
+        "price_avg": {
+            "value": 14576.777777777777
+        }
     }
 }
 ```
