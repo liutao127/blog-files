@@ -1,7 +1,7 @@
 ---
 title: ES学习笔记
 date: 2024-10-02 16:55:35
-tags: ES、elasticsearch
+tags: ES elasticsearch
 ---
 
 # ES学习笔记
