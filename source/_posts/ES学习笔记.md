@@ -94,6 +94,26 @@ put: localhost:9200/user/_mapping
 }
 ```
 
+##### 指定别名
+
+**在创建索引并且指定别名后，es规定是不允许修改索引信息的。**
+
+请求：
+
+```http
+put: /test_index_1
+```
+
+**请求体数据：**
+
+```json
+{
+  "aliases": {
+    "test1": {} // 别名，后续可以通过test1来查询相关数据
+  }
+}
+```
+
 #### 1.1.4. 删除索引
 
 **请求：**
@@ -254,8 +274,6 @@ put: localhost:1001/user/_settings
     "acknowledged": true
 }
 ```
-
-
 
 ### 1.2. 文档
 
@@ -1645,7 +1663,409 @@ get: http://localhost:1001/my_index/_analyze
 }
 ```
 
+### 1.6. kibana操作
 
+#### 1.6.1. 索引操作
+
+```json
+# 创建索引
+# put 索引名称（小写）
+put test_index
+
+# put 索引
+# 增加配置： JSON格式的主题内容
+put test_index_1
+{
+  "aliases": {
+    "test1": {}
+  }
+}
+
+#删除索引
+# delete 索引名称
+delete test_index_1
+
+# 修改索引配置
+# ES软件不允许修改索引信息
+post test_index_1
+{
+  "aliases": {
+    "test1": {}
+  }
+}
+
+# head索引，状态码：200（存在）、404（不存在）
+head test_index
+
+#查询索引
+# get 索引名称
+get test_index
+get test_index_1
+get test_index_2
+
+#查询所有索引
+# get _cat/indices
+get _cat/indices
+```
+
+#### 1.6.2. 文档操作
+
+```json
+# 创建文档（索引数据） - 增加唯一性表示（手动、自动）
+put test_doc
+
+put test_doc/_doc/1001
+{
+  "id": "1001",
+  "name": "zhangsan",
+  "age": 30
+}
+post test_doc/_doc
+{
+  "id": "1002",
+  "name": "zhangsan",
+  "age": 30
+}
+
+# 查询文档
+get test_doc/_doc/1001
+# 查询索引中所有的文档数据
+get test_doc/_search 
+
+# 修改文档
+put test_doc/_doc/1001
+{
+  "id": 10011,
+  "name": "zhangsan111",
+  "age": 300,
+  "tel": 123123
+}
+post test_doc/_doc/1001
+{
+  "id": 10011,
+  "name": "zhangsan1",
+  "age": 300,
+  "tel": 123123
+}
+
+# 删除数据
+delete test_doc/_doc/ZHDcW5IBhxhA-8-JsKJj
+```
+
+#### 1.6.3. 文档搜索
+
+```json
+# 创建索引
+put test_query
+
+# 批量添加数据
+put test_query/_bulk
+{"index": {"_index": "test_query","_id": "1001"}}
+{"id": "1001","name":"zhang san","age":30}
+{"index": {"_index": "test_query","_id": "1002"}}
+{"id": "1002","name":"li si","age": 40}
+{"index": {"_index": "test_query","_id": "1003"}}
+{"id": "1003", "name": "wang wu","age" : 50}
+{"index": {"_index": "test_query","_id": "1004"}}
+{"id": "1004","name": "zhangsan", "age" : 30}
+{"index": {"_index": "test_query","_id": "1005"}}
+{"id": "1005","name": "lisi","age":40}
+{"index": {"_index": "test_query","_id": "1006"}}
+{"id": "1006", "name ": "wangwu","age" : 50}
+
+# match是分词查询，ES会将数据分词（关键词）保存
+# 会做分词效果
+get test_query/_search
+{
+  "query": {
+    "match": {
+      "name": "zhang li" 
+    }
+  }
+}
+# 不会做分词
+get test_query/_search
+{
+  "query": {
+    "term": {
+      "name": {
+        "value": "zhang san" 
+      }
+    }
+  }
+}
+
+# 对查询结果的字段进行限制
+get test_query/_search
+{
+  "_source": ["name", "age"],
+  "query": {
+    "match": {
+      "name": "zhang li" 
+    }
+  }
+}
+
+# 组合多个条件
+get test_query/_search
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "match": {
+            "name": "zhang"
+          }
+        },
+        {
+          "match": {
+            "age": "40"
+          }
+        }
+      ]
+    }
+  }
+}
+
+get test_query/_search
+{
+  "query": {
+    "match": {
+      "name": "zhang"
+    }
+  },
+  "sort":[
+    {
+      "age": {
+        "order": "desc"
+      }
+    }  
+  ]
+}
+
+#分页查询
+# from = (pageNo - 1) * size
+get test_query/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "from": 2,
+  "size": 1
+}
+
+```
+
+#### 1.6.4. 分组查询
+
+```json
+# 分组查询
+get test_query/_search
+{
+  "aggs": {
+    "ageGroup": {
+      "terms": {
+        "field": "age"
+      }
+    }
+  },
+  "size": 0
+}
+
+# 分组之后在聚合（求和）
+get test_query/_search
+{
+  "aggs": {
+    "ageGroup": {
+      "terms": {
+        "field": "age"
+      },
+      "aggs": {
+        "ageSum": {
+          "sum": {
+            "field": "age"
+          }
+        }
+      }
+    }
+  },
+  "size": 0
+}
+
+# 求平均年龄
+get test_query/_search
+{
+  "aggs": {
+    "avgAge": {
+      "avg": {
+        "field": "age"
+      }
+    }
+  },
+  "size": 0
+}
+
+# 获取前3名操作
+get test_query/_search
+{
+  "aggs": {
+    "topThree": {
+      "top_hits": {
+        "sort": [
+          {
+            "age": {
+              "order": "desc"
+            }
+          }
+        ], 
+        "size": 3
+      }
+    }
+  },
+  "size": 0
+}
+```
+
+#### 1.6.5. 索引模版
+
+```json
+# 索引模版
+# 创建索引模版
+put _template/mytemplate
+{
+  "index_patterns": [ // 只有索引名为：my* 的时候才会应用该模版
+    "my*"
+  ],
+  "settings": {
+    "index": {
+      "number_of_shards": "1"
+    }
+  },
+  "mappings": {
+    "properties": {
+      "now": {
+        "type": "date",
+        "format": "yyyy/MM/dd"
+      }
+    }
+  }
+}
+# 查看模版
+get _template/mytemplate
+
+# 创建索引测试模版
+put test_temp_1
+get test_temp_1
+
+put my_test_temp_1
+get my_test_temp_1
+
+# 删除索引模版
+delete _template/mytemplate
+```
+
+#### 1.6.6. 中文分词
+
+```json
+# 中文分词
+get _analyze
+{
+  "analyzer": "standard",
+  "text": "我是一个三好学生" // 每个字为一个词
+}
+
+get _analyze
+{
+  "analyzer": "chinese", 
+  "text": "我是一个三好学生" // 仍然每个字为一个词
+}
+
+get _analyze
+{
+  "analyzer": "ik_smart", 
+  "text": "我是一个三好学生" // 我、是、一个、三好学生
+}
+
+get _analyze
+{
+  "analyzer": "ik_max_word", 
+  "text": "我是一个三好学生" // 我、是、一个、一、个、三好学生、三好、三、好学生、好学、学生
+}
+# ik分词器可以在config中创建一个字典文件（test.dic），然后再配置文件中修改相关配置，重启即可生效
+# - 例如想让 三好学生 为一个词，不进行分词的操作，就把 三好学生 写入到字典文件中。
+```
+
+#### 1.6.7. 文档评分机制
+
+```json
+# 评分机制
+put test_score
+put test_score/_doc/1001
+{
+  "text": "zhang kai shou bi, ying jie tai yang !"
+}
+
+put test_score/_doc/1002
+{
+  "text": "zhang san"
+}
+
+# 查询结果中会给每条记录一个 _score 值，分值越高，排序越靠前
+get test_score/_search
+{
+  "query": {
+    "match": {
+      "text": "zhang"
+    }
+  }
+}
+# 在url后添加 ?explain=true 可以查看详细的评分机制的计算过程
+# 公式： boost * idf * tf
+# 含义：boost（权重系数）；
+# tf（词频）：搜索文本中该词条term，在查询文本中出现了多少次，出现的次数越多，就越相关，得分就越高；
+# idf（逆文档频率）：搜索文本中的各个词条在整个索引的所有文档中出现了多少次，出现的次数越多，说明越不重要，也就越不相关，得分就比较低。
+get test_score/_search?explain=true
+{
+  "query": {
+    "match": {
+      "text": "zhang"
+    }
+  }
+}
+
+# 自定义权重
+get test_score/_search
+{
+  "query": {
+    "match": {
+      "text": {
+          "query": "zhang",
+          "boost": 2
+      }
+    }
+  }
+}
+```
+
+### 1.7. EQL操作
+
+#### 1.7.1. EQL是什么？
+
+**全名：Event Query Language。事件查询语言（EQL）是一种用于基于事件的时间序列数据（例如日志，指标和跟踪）的查询语言。在Elastic Security平台上，当输入有效的EQL时，查询会在数据节点上编译，执行查询并返回结果。这一些都快速、并行的发生，让用户立即看到结果。**
+
+EQL优点：
+
+- EQL使你可以表达事件之间的关系；
+- EQL学习曲线很低（很像SQL，可以直观地编写和读取查询，从而进行快速，迭代的搜索）；
+- EQL设计用于安全用例，可以通过数据之间的关系，找到对系统的威胁，进行预警。
+
+#### 1.7.2. EQL基础语法
+
+要运行EQL搜索，搜索到的数据流或索引必须包含时间戳和事件类别字段。默认情况下EQL使用elastic通用模式（ECS）中的@timestamp（时间戳）和event.category（事件分类）字段。
+
+### 1.8. 自然语言处理NLP
+
+​		随着 8.0 的发布，Elastic 很高兴能够将 PyTorch 机器学习模型上传到 Elasticsearch中以在 Elastic Stack 中提供现代自然语言处理 NLP)。现在，Elasticsearch 用户能够集成用于构建 NLP 模型的最流行的格式之一,并将这些模型作为 NLP 数据管道的一部分通过我们的Inference processor 整合到Elasticsearch 中。
 
 ## 2. 核心概念
 
@@ -1930,6 +2350,50 @@ put /all/_settings
 | transport.tcp.compress             | true          | 节点之间传输数据的时候是否压缩，压缩会变快                   |
 | discovery.zen.minimum_master_nodes | 1             | 设置选举master节点时需要参与的最小候选节点数，默认为1.如果使用默认值，则当网络不稳定时可能会出现脑裂。<br />合理的数值为（master_eligible_nodes/2）+1，其中master_eligible_nodes表示集群中的候选节点数 |
 | discovery.zen.ping.timeout         | 3s            | 设置在集群中自动发现其他节点时Ping连接超时时间，默认3秒。在较差的网络环境下需要设置的大一点，防止因误判该节点的存货状态而导致分片的转移 |
+
+### 3.14. 页缓存
+
+​		为了数据的安全、可靠，常规操作中，数据都是保存在磁盘文件中的。所以对数据的访问，绝大数情况下其实就是对文件的访问，为了提升对文件的读写的访问效率，Linux 内核会以页大小(4KB)为单位，将文件划分为多个数据块。当用户对文件中的某个数据块进行读写操作时，内核首先会申请一个内存页(称为PageCache,页缓存)与文件中的数据块进行绑定。
+
+### 3.15. 分片级请求缓存
+
+​		对一个或多个索引发送搜索请求时，搜索请求首先会发送到 ES集群中的某个节点，称之为协调节点;协调节点会把该搜索请求分发给其他节点并在相应分片上执行搜索操作，我们把分片上的执行结果称为“本地结果集”，之后，分片再将执行结果返回给协调节点:协调节点获得所有分片的本地结果集之后，合并成最终的结果并返回给客户端。Elasticsearch会在每个分片上缓存了本地结果集，这使得频繁使用的搜索请求几乎立即返回结果。这里的缓存，称之为 Request Cache，全称是 Shard Request Cache，即分片级请求缓存。
+
+### 3.16. 查询缓存
+
+​		这种缓存的工作方式也与其他缓存有着很大的不同。页缓存方式缓存的数据与实际从查询中读取的数据量无关。当使用类似查询时，分片级请求缓存会缓存数据。查询缓存更精细些，可以缓存在不同查询之间重复使用的数据。
+​		Elasticsearch 具有 IndicesQueryCache 类。这个类与 IndicesService 的生命周期绑定在一起，这意味着它不是按索引，而是按节点的特性 - 这样做是有道理的，因为缓存本身使用了 Java 堆。这个索引查询缓存占用以下两个配置选项：
+
+```js
+indices.queries.cache.count:缓存条目总数，默认为10，000
+indices.queries.cache.size:用于此缓存的 Java 堆的百分比，默认为 10%
+```
+
+​		查询缓存已进入下一个粒度级别，可以跨查询重用!凭借其内置的启发式算法，它只缓存多次使用的筛选器，还根据筛选器决定是否值得缓存，或者现有的查询方法是否足够快,以避免浪费任何堆内存。这些位集的生命周期与段的生命周期绑定在一起，以防止返回过时的数据。一旦使用了新段，就需要创建新的位集。
+
+### 3.17. 减少内存堆
+
+​		由于 Elasticsearch 用户不断突破在 Elasticsearch 节点上存储的数据量的极限，所以他们有时会在耗尽磁盘空间之前就将堆内存用完了。对于这些用户来说，这个问题难免让他们沮丧，因为每个节点拟合尽可能多的数据通常是降低成本的重要手段。
+
+​		但为什么 Elasticsearch 需要堆内存来存储数据呢?为什么它不能只用磁盘空间呢?这其中有几个原因，但最主要的一个是，Lucene 需要在内存中存储一些信息，以便知道在磁盘的什么位置进行查找。例如，Lucene的倒排索引由术语字典和术语索引组成，术语字典将术语按排序顺序归入磁盘上的区块，术语索引用于快速香找术语字典。该术语索引将术语前缀与磁盘上区块(包含具有该前缀的术语)起始位置的偏移量建立映射。术语字典在磁盘上，但是术语索引直到最近还在堆上。
+
+### 3.18. 冻结层和可搜索快照
+
+​		Elasticsearch 7.12 版中推出了冻结层的技术预览版，让您能够将计算与存储完全分离,并直接在对象存储(如 AWS S3、MicrosoftAzure Storage 和 Google Cloud Storage)中搜索数据。作为我们数据层旅程的下一个重要里程碑,冻结层实现以超低成本长期存储大量数据的同时，还能保持数据处于完全活动和可搜索状态，显著扩展了您的数据覆盖范围。
+
+​		长期以来，我们一直支持通过多个数据层来进行数据生命周期管理:热层用于提供较高的处理速度，温层则用于降低成本，但性能也较低。两者都利用本地硬件来存储主数据和冗余副本。最近，我们引入了冷层，通过消除在本地存储几余副本的需要，您可以在相同数量的硬件上最多存储两倍于热层的数据。尽管为了获得最佳性能，主数据仍然存储在本地，但冷层中的索引由存储在对象存储中的可搜索快照提供支持，以实现几余。
+
+{% asset_img  6.jpg %}
+
+### 3.19. 搜索聚合
+
+​		Elasticsearch 7.13 版新增功能可以实现更快的聚合。在 date histogram聚合方面Elasticsearch 通过在内部将其重写为 filters 聚合，获得了巨大的性能提升。具体来说，它变成了一个包含 range 查询的 flters 聚合。这就是 Elasticseafch 优化的内容 - range 查询为了加快 temms 和 date histogram 这两个聚合的速度。可以将它们作为 flters 运行,然后加快 flters 的聚合速度。
+
+### 3.20. 原生矢量搜索
+
+​		Elasticsearch 8.0版引入了一整套原生矢量搜索功能，让客户和员工能够使用他们自己的文字和语言来搜索并收到高度相关的结果。早在 Elasticsearch 7.0版中，我们就针对高维矢量引入了字段类型。在 Elasticsearch7.3 和 Elasticsearch 7.4 版中，引入了对矢量相似函数的支持。在 Elasticsearch 8.0 版中，将对自然语言处理 LP)模型的原生支持直接引入了 Elasticsearch，让矢量搜索功能更容易实现。此外，Elasticsearch 8.0 版还包含了对近似最近邻(ANN)搜索的原生支持,因此可以快速且大规模地比较基于矢量的査询与基于矢量的文档语料库。
+
+​		自然语言处理(NaturalLanguage Processing)是计算科学领域与人工智能领域中的一个重要方向。它研究能实现人与计算机之间用自然语言进行有效通信的各种理论和方法。自然语言处理是一门融语言学、计算机科学、数学于一体的科学。因此，这一领域的研究将涉及自然语言，即人们日常使用的语言，所以它与语言学的研究有着密切的联系，但又有重要的区别。自然语言处理并不是一般地研究自然语言，而在于研制能有效地实现自然语言通信的计算机系统，特别是其中的软件系统。因而它是计算机科学的一部分。
 
 ## 4. 知识点
 
